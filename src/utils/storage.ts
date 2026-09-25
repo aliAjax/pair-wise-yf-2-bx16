@@ -6,7 +6,13 @@ export function loadBenches(): Bench[] {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     if (data) {
-      return JSON.parse(data);
+      const parsed = JSON.parse(data) as Bench[];
+      // 旧档案没有使用状态字段，第一次打开时按开放处理
+      return parsed.map((bench) => ({
+        ...bench,
+        status: bench.status ?? 'open',
+        statusHistory: bench.statusHistory ?? [],
+      }));
     }
   } catch (error) {
     console.error('Failed to load benches from localStorage:', error);

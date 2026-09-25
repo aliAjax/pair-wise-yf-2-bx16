@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Clock, Volume2, Sun, Armchair } from 'lucide-react';
+import { MapPin, Clock, Volume2, Sun, Armchair, History } from 'lucide-react';
 import type { Bench } from '@/types';
-import { MATERIAL_LABELS, SHADE_LABELS, NOISE_LABELS, STAY_DURATION_LABELS } from '@/types';
+import { MATERIAL_LABELS, SHADE_LABELS, NOISE_LABELS, STAY_DURATION_LABELS, BENCH_STATUS_LABELS } from '@/types';
 import Rating from '@/components/Rating/Rating';
+import StatusBadge from '@/components/StatusBadge/StatusBadge';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
+import { getLatestStatusChange, formatStatusDate } from '@/utils/status';
 
 interface BenchCardProps {
   bench: Bench;
@@ -15,6 +17,7 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
   const comfortScore = calculateComfortScore(bench);
   const comfortLevel = getComfortLevel(comfortScore);
   const comfortColor = getComfortColor(comfortScore);
+  const latestChange = getLatestStatusChange(bench);
 
   const staggerClass = `stagger-${(index % 6) + 1}`;
 
@@ -35,8 +38,11 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
           <span className="text-ink-light ml-1">{comfortScore}</span>
         </div>
 
-        <div className="absolute top-3 left-3 px-2 py-1 bg-white/80 backdrop-blur-sm rounded-full text-xs text-ink-light">
-          {MATERIAL_LABELS[bench.material]}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5">
+          <span className="px-2 py-1 bg-white/80 backdrop-blur-sm rounded-full text-xs text-ink-light">
+            {MATERIAL_LABELS[bench.material]}
+          </span>
+          <StatusBadge status={bench.status} />
         </div>
       </div>
 
@@ -44,11 +50,21 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
         <h3 className="font-serif text-lg font-semibold text-deep-brown mb-1 line-clamp-1">
           {bench.name}
         </h3>
-        
+
         <div className="flex items-center gap-1 text-ink-light text-sm mb-3">
           <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
           <span className="line-clamp-1">{bench.location}</span>
         </div>
+
+        {latestChange && (
+          <div className="flex items-center gap-1.5 text-xs text-ink-light mb-3">
+            <History className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="line-clamp-1">
+              {formatStatusDate(latestChange.changedAt)} 变更为
+              {BENCH_STATUS_LABELS[latestChange.status]}：{latestChange.reason}
+            </span>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2 mb-3">
           <span className="inline-flex items-center gap-1 px-2 py-1 bg-moss-green/10 text-moss-green text-xs rounded-md">

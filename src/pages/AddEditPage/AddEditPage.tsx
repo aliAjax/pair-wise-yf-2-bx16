@@ -39,6 +39,7 @@ export default function AddEditPage() {
 
   const { getBenchById, addBench, updateBench, initialize, initialized, addExperience, updateExperience, deleteExperience } = useBenchStore();
   const existingBench = id ? getBenchById(id) : undefined;
+  const isClosed = isEdit && existingBench?.status === 'closed';
 
   const [formData, setFormData] = useState({
     name: '',
@@ -88,6 +89,7 @@ export default function AddEditPage() {
   };
 
   const handleAddExperience = () => {
+    if (isClosed) return;
     const newExp: BenchExperience = {
       id: generateId(),
       benchId: id || 'temp',
@@ -390,12 +392,19 @@ export default function AddEditPage() {
               <button
                 type="button"
                 onClick={handleAddExperience}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-moss-green hover:bg-moss-green/10 rounded-lg transition-colors"
+                disabled={isClosed}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-moss-green hover:bg-moss-green/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 <Plus className="w-4 h-4" />
                 添加时段
               </button>
             </div>
+
+            {isClosed && (
+              <div className="mb-4 p-3 bg-red-500/5 border border-red-500/10 rounded-lg text-sm text-ink-light">
+                该长椅当前为停用状态，停用期间不能新增时段体验，已有记录仍可查看。
+              </div>
+            )}
 
             {experiences.length > 0 ? (
               <div className="space-y-4">

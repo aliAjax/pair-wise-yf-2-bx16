@@ -14,6 +14,8 @@ import {
   Sunset,
   Moon,
   CloudSun,
+  History,
+  RefreshCw,
 } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import {
@@ -23,16 +25,22 @@ import {
   NOISE_LABELS,
   STAY_DURATION_LABELS,
   TIME_PERIOD_LABELS,
+  BENCH_STATUS_LABELS,
 } from '@/types';
-import type { TimePeriodType } from '@/types';
+import type { TimePeriodType, BenchStatusType } from '@/types';
 import Rating from '@/components/Rating/Rating';
+import StatusBadge from '@/components/StatusBadge/StatusBadge';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
+import { getLatestStatusChange, formatStatusDate } from '@/utils/status';
 
 export default function BenchDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getBenchById, deleteBench, initialize, initialized } = useBenchStore();
+  const { getBenchById, deleteBench, setBenchStatus, initialize, initialized } = useBenchStore();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [newStatus, setNewStatus] = useState<BenchStatusType>('open');
+  const [statusReason, setStatusReason] = useState('');
 
   useEffect(() => {
     if (!initialized) {
@@ -61,6 +69,22 @@ export default function BenchDetail() {
   const comfortScore = calculateComfortScore(bench);
   const comfortLevel = getComfortLevel(comfortScore);
   const comfortColor = getComfortColor(comfortScore);
+  const latestChange = getLatestStatusChange(bench);
+  const statusHistoryDesc = [...bench.statusHistory].reverse();
+
+  const openStatusModal = () => {
+    setNewStatus(bench.status);
+    setStatusReason('');
+    setShowStatusModal(true);
+  };
+
+  const handleStatusSubmit = () => {
+    const reason = statusReason.trim();
+    if (!reason || newStatus === bench.status) return;
+    setBenchStatus(bench.id, newStatus, reason);
+    setShowStatusModal(false);
+    setStatusReason('');
+  };
 
   const timePeriodIcons: Record<TimePeriodType, typeof Sunrise> = {
     morning: Sunrise,
@@ -106,9 +130,12 @@ export default function BenchDetail() {
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h1 className="font-serif text-2xl font-bold text-deep-brown mb-2">
-                    {bench.name}
-                  </h1>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h1 className="font-serif text-2xl font-bold text-deep-brown">
+                      {bench.name}
+                    </h1>
+                    <StatusBadge status={bench.status} size="md" />
+                  </div>
                   <div className="flex items-center gap-1 text-ink-light">
                     <MapPin className="w-4 h-4 flex-shrink-0" />
                     <span>{bench.location}</span>
@@ -215,6 +242,70 @@ export default function BenchDetail() {
 
         <div className="space-y-6">
           <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-2">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-serif text-lg font-semibold text-deep-brown">
+                使用状态
+              </h2>
+              <button
+                onClick={openStatusModal}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-moss-green hover:bg-moss-green/10 rounded-lg transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                变更状态
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 mb-4">
+              <StatusBadge status={bench.status} size="md" />
+              {latestChange ? (
+                <span className="text-xs text-ink-light">
+                  最近变更于 {formatStatusDate(latestChange.changedAt)}
+                </span>
+              ) : (
+                <span className="text-xs text-ink-light">暂无变更记录</span>
+              )}
+            </div>
+
+            {latestChange && (
+              <div className="p-3 bg-warm-cream/50 rounded-lg mb-4">
+                <div className="text-xs text-ink-light mb-1">最近一次变更</div>
+                <p className="text-sm text-deep-brown leading-relaxed">
+                  变更为{BENCH_STATUS_LABELS[latestChange.status]}：{latestChange.reason}
+                </p>
+              </div>
+            )}
+
+            {statusHistoryDesc.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 text-xs text-ink-light mb-2">
+                  <History className="w-3.5 h-3.5" />
+                  <span>变更历史</span>
+                </div>
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                  {statusHistoryDesc.map((change) => (
+                    <div
+                      key={change.id}
+                      className="flex items-start gap-2 text-sm border-l-2 border-deep-brown/10 pl-3 py-0.5"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <StatusBadge status={change.status} />
+                          <span className="text-xs text-ink-light">
+                            {formatStatusDate(change.changedAt)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-ink-light leading-relaxed">
+                          {change.reason}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-3">
             <h2 className="font-serif text-lg font-semibold text-deep-brown mb-4">
               分时段体验
             </h2>
@@ -253,13 +344,13 @@ export default function BenchDetail() {
                   还没有分时段体验记录
                 </p>
                 <p className="text-xs text-ink-light/60 mt-1">
-                  编辑长椅时可以添加
+                  {bench.status === 'closed' ? '停用期间暂不能新增时段体验' : '编辑长椅时可以添加'}
                 </p>
               </div>
             )}
           </div>
 
-          <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-3">
+          <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-4">
             <h3 className="font-serif text-sm font-semibold text-deep-brown mb-3">
               档案信息
             </h3>
@@ -284,6 +375,70 @@ export default function BenchDetail() {
           </div>
         </div>
       </div>
+
+      {showStatusModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="paper-texture rounded-xl shadow-paper-hover p-6 max-w-sm w-full fade-in">
+            <h3 className="font-serif text-lg font-semibold text-deep-brown mb-4">
+              变更使用状态
+            </h3>
+
+            <div className="space-y-2 mb-4">
+              {(Object.entries(BENCH_STATUS_LABELS) as [BenchStatusType, string][]).map(
+                ([value, label]) => (
+                  <label
+                    key={value}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      newStatus === value
+                        ? 'border-moss-green bg-moss-green/5'
+                        : 'border-deep-brown/10 hover:bg-warm-cream/50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="benchStatus"
+                      checked={newStatus === value}
+                      onChange={() => setNewStatus(value)}
+                      className="text-moss-green focus:ring-moss-green"
+                    />
+                    <StatusBadge status={value} />
+                    <span className="text-sm text-deep-brown">{label}</span>
+                  </label>
+                )
+              )}
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-deep-brown mb-1.5">
+                变更原因 *
+              </label>
+              <textarea
+                value={statusReason}
+                onChange={(e) => setStatusReason(e.target.value)}
+                placeholder="例如：长椅维修中，暂时封闭"
+                rows={3}
+                className="w-full px-3 py-2 text-sm bg-white/60 border border-deep-brown/10 rounded-lg text-deep-brown placeholder:text-ink-light/60 focus:bg-white resize-none transition-colors"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowStatusModal(false)}
+                className="flex-1 px-4 py-2 text-sm text-deep-brown bg-warm-beige hover:bg-warm-beige/80 rounded-lg transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleStatusSubmit}
+                disabled={!statusReason.trim() || newStatus === bench.status}
+                className="flex-1 px-4 py-2 text-sm text-white bg-moss-green hover:bg-moss-light rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                确认变更
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">

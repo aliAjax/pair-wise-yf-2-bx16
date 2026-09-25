@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, Armchair, Info } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import { calculateComfortScore, getComfortColor } from '@/utils/comfort';
+import StatusBadge from '@/components/StatusBadge/StatusBadge';
 import type { Bench } from '@/types';
 
 export default function MapPage() {
@@ -60,8 +61,9 @@ export default function MapPage() {
           {benches.map((bench) => {
             const position = getPositionStyle(bench);
             const comfortScore = calculateComfortScore(bench);
-            const colorClass = getComfortColor(comfortScore);
-            
+            const isClosed = bench.status === 'closed';
+            const colorClass = isClosed ? 'text-ink-light/50' : getComfortColor(comfortScore);
+
             return (
               <button
                 key={bench.id}
@@ -85,16 +87,19 @@ export default function MapPage() {
 
                 {hoveredBench?.id === bench.id && (
                   <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 translate-y-full w-48 paper-texture rounded-lg shadow-paper-hover p-3 z-20 pointer-events-none">
-                    <h4 className="font-serif font-medium text-deep-brown text-sm mb-1 line-clamp-1">
-                      {bench.name}
-                    </h4>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <h4 className="font-serif font-medium text-deep-brown text-sm line-clamp-1">
+                        {bench.name}
+                      </h4>
+                      <StatusBadge status={bench.status} />
+                    </div>
                     <p className="text-xs text-ink-light line-clamp-1 mb-2">
                       {bench.location}
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-ink-light">舒适度</span>
                       <span className={`text-sm font-medium ${colorClass}`}>
-                        {comfortScore}
+                        {isClosed ? '—' : comfortScore}
                       </span>
                     </div>
                   </div>
@@ -124,6 +129,10 @@ export default function MapPage() {
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-ink-light" fill="currentColor" />
                 <span className="text-xs text-ink-light">一般/较差</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-ink-light/50" fill="currentColor" />
+                <span className="text-xs text-ink-light">停用</span>
               </div>
             </div>
           </div>

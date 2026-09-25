@@ -4,6 +4,7 @@ export type ShadeLevelType = 'none' | 'partial' | 'full';
 export type NoiseLevelType = 'quiet' | 'moderate' | 'noisy';
 export type StayDurationType = 'short' | 'medium' | 'long' | 'verylong';
 export type TimePeriodType = 'morning' | 'noon' | 'afternoon' | 'evening' | 'night';
+export type BenchStatusType = 'open' | 'restricted' | 'closed';
 
 export interface BenchExperience {
   id: string;
@@ -11,6 +12,13 @@ export interface BenchExperience {
   timePeriod: TimePeriodType;
   notes: string;
   rating: number;
+}
+
+export interface BenchStatusChange {
+  id: string;
+  status: BenchStatusType;
+  reason: string;
+  changedAt: string;
 }
 
 export interface Bench {
@@ -27,6 +35,8 @@ export interface Bench {
   stayDuration: StayDurationType;
   rating: number;
   review: string;
+  status: BenchStatusType;
+  statusHistory: BenchStatusChange[];
   experiences: BenchExperience[];
   createdAt: string;
   updatedAt: string;
@@ -84,4 +94,10 @@ export const TIME_PERIOD_ICONS: Record<TimePeriodType, string> = {
   afternoon: 'cloud-sun',
   evening: 'sunset',
   night: 'moon',
+};
+
+export const BENCH_STATUS_LABELS: Record<BenchStatusType, string> = {
+  open: '开放',
+  restricted: '受限',
+  closed: '停用',
 };

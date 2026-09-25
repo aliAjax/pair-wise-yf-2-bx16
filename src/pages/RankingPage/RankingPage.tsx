@@ -16,7 +16,8 @@ export default function RankingPage() {
     }
   }, [initialized, initialize]);
 
-  const rankedBenches = [...benches]
+  const rankedBenches = benches
+    .filter((bench) => bench.status !== 'closed')
     .sort((a, b) => calculateComfortScore(b) - calculateComfortScore(a))
     .map((bench, index) => ({ bench, rank: index + 1 }));
 
@@ -41,7 +42,7 @@ export default function RankingPage() {
           舒适度排行
         </h2>
         <p className="text-ink-light text-sm">
-          综合评分最高的长椅
+          综合评分最高的长椅（停用中的长椅不参与排行）
         </p>
       </div>
 
