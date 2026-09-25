@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Armchair, Info } from 'lucide-react';
+import { MapPin, Armchair, Info, Ban, AlertTriangle } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import { calculateComfortScore, getComfortColor } from '@/utils/comfort';
+import StatusBadge from '@/components/StatusBadge/StatusBadge';
+import { normalizeBenchStatus } from '@/utils/status';
 import type { Bench } from '@/types';
 
 export default function MapPage() {
@@ -59,9 +61,12 @@ export default function MapPage() {
 
           {benches.map((bench) => {
             const position = getPositionStyle(bench);
+            const normalized = normalizeBenchStatus(bench);
+            const isInactive = normalized.status === 'inactive';
+            const isRestricted = normalized.status === 'restricted';
             const comfortScore = calculateComfortScore(bench);
-            const colorClass = getComfortColor(comfortScore);
-            
+            const colorClass = isInactive ? 'text-ink-light' : getComfortColor(comfortScore);
+
             return (
               <button
                 key={bench.id}
@@ -73,21 +78,33 @@ export default function MapPage() {
               >
                 <div className={`relative ${
                   hoveredBench?.id === bench.id ? 'scale-125 z-10' : 'z-0'
-                } transition-transform duration-200`}>
+                } transition-transform duration-200 ${isInactive ? 'opacity-70' : ''}`}>
                   <MapPin
                     className={`w-8 h-8 ${colorClass} drop-shadow-md group-hover:drop-shadow-lg transition-all`}
                     fill="currentColor"
                   />
                   <div className="absolute top-1 left-1/2 -translate-x-1/2">
-                    <Armchair className="w-3 h-3 text-white" />
+                    {isInactive ? (
+                      <Ban className="w-3 h-3 text-white" />
+                    ) : (
+                      <Armchair className="w-3 h-3 text-white" />
+                    )}
                   </div>
+                  {isRestricted && (
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-ochre text-white flex items-center justify-center">
+                      <AlertTriangle className="w-2 h-2" />
+                    </span>
+                  )}
                 </div>
 
                 {hoveredBench?.id === bench.id && (
                   <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 translate-y-full w-48 paper-texture rounded-lg shadow-paper-hover p-3 z-20 pointer-events-none">
-                    <h4 className="font-serif font-medium text-deep-brown text-sm mb-1 line-clamp-1">
-                      {bench.name}
-                    </h4>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <h4 className="font-serif font-medium text-deep-brown text-sm line-clamp-1">
+                        {bench.name}
+                      </h4>
+                      <StatusBadge status={normalized.status} />
+                    </div>
                     <p className="text-xs text-ink-light line-clamp-1 mb-2">
                       {bench.location}
                     </p>
@@ -124,6 +141,10 @@ export default function MapPage() {
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-ink-light" fill="currentColor" />
                 <span className="text-xs text-ink-light">一般/较差</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-ink-light opacity-70" fill="currentColor" />
+                <span className="text-xs text-ink-light">停用（保留点位）</span>
               </div>
             </div>
           </div>

@@ -4,7 +4,7 @@ import { Trophy, MapPin, Star, Crown, Medal, Award } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
 import { MATERIAL_LABELS, SHADE_LABELS } from '@/types';
-import type { Bench } from '@/types';
+import { isBenchInactive } from '@/utils/status';
 
 export default function RankingPage() {
   const { benches, initialize, initialized } = useBenchStore();
@@ -16,7 +16,11 @@ export default function RankingPage() {
     }
   }, [initialized, initialize]);
 
-  const rankedBenches = [...benches]
+  // 停用中的长椅不纳入舒适排行
+  const activeBenches = benches.filter((bench) => !isBenchInactive(bench));
+  const inactiveCount = benches.length - activeBenches.length;
+
+  const rankedBenches = [...activeBenches]
     .sort((a, b) => calculateComfortScore(b) - calculateComfortScore(a))
     .map((bench, index) => ({ bench, rank: index + 1 }));
 
@@ -43,6 +47,11 @@ export default function RankingPage() {
         <p className="text-ink-light text-sm">
           综合评分最高的长椅
         </p>
+        {inactiveCount > 0 && (
+          <p className="text-ink-light/70 text-xs mt-2">
+            {inactiveCount} 张停用中的长椅未纳入排行
+          </p>
+        )}
       </div>
 
       <div className="space-y-3">

@@ -10,6 +10,9 @@ import {
   Sunset,
   Moon,
   CloudSun,
+  Ban,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import {
@@ -30,7 +33,9 @@ import type {
   BenchExperience,
 } from '@/types';
 import Rating from '@/components/Rating/Rating';
+import StatusBadge from '@/components/StatusBadge/StatusBadge';
 import { generateId } from '@/utils/comfort';
+import { normalizeBenchStatus } from '@/utils/status';
 
 export default function AddEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -56,6 +61,10 @@ export default function AddEditPage() {
   });
 
   const [experiences, setExperiences] = useState<BenchExperience[]>([]);
+
+  const currentStatus = isEdit && existingBench ? normalizeBenchStatus(existingBench).status : 'open';
+  const isInactive = currentStatus === 'inactive';
+  const isRestricted = currentStatus === 'restricted';
 
   useEffect(() => {
     if (!initialized) {
@@ -88,6 +97,7 @@ export default function AddEditPage() {
   };
 
   const handleAddExperience = () => {
+    if (isInactive) return;
     const newExp: BenchExperience = {
       id: generateId(),
       benchId: id || 'temp',
@@ -131,7 +141,8 @@ export default function AddEditPage() {
         const existingExp = existingBench?.experiences.find((e) => e.id === exp.id);
         if (existingExp) {
           updateExperience(id, exp.id, exp);
-        } else {
+        } else if (!isInactive) {
+          // 停用期间不能新增时段体验
           addExperience(id, exp);
         }
       });
@@ -166,6 +177,34 @@ export default function AddEditPage() {
         <h1 className="font-serif text-2xl font-bold text-deep-brown mb-6">
           {isEdit ? '编辑长椅档案' : '添加长椅档案'}
         </h1>
+
+        {isEdit && (isInactive || isRestricted) && (
+          <div className={`paper-texture rounded-xl p-4 mb-6 flex items-start gap-3 ${
+            isInactive ? 'bg-ink-light/5' : 'bg-ochre/5'
+          }`}>
+            {isInactive ? (
+              <Ban className="w-5 h-5 text-ink-light flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-ochre flex-shrink-0 mt-0.5" />
+            )}
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-0.5">
+                <StatusBadge status={currentStatus} />
+                <span className="text-sm text-ink-light">
+                  {isInactive ? '停用期间不能新增时段体验，原有记录仍可编辑或删除。' : '该长椅当前使用受限，体验记录照常维护。'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate(`/bench/${id}`)}
+                className="inline-flex items-center gap-1 text-xs text-moss-green hover:underline mt-1"
+              >
+                <RefreshCw className="w-3 h-3" />
+                前往详情页变更状态
+              </button>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-1">
@@ -390,7 +429,13 @@ export default function AddEditPage() {
               <button
                 type="button"
                 onClick={handleAddExperience}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-moss-green hover:bg-moss-green/10 rounded-lg transition-colors"
+                disabled={isInactive}
+                title={isInactive ? '停用期间不能新增时段体验' : '添加时段体验'}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  isInactive
+                    ? 'text-ink-light/50 cursor-not-allowed'
+                    : 'text-moss-green hover:bg-moss-green/10'
+                }`}
               >
                 <Plus className="w-4 h-4" />
                 添加时段
@@ -399,7 +444,7 @@ export default function AddEditPage() {
 
             {experiences.length > 0 ? (
               <div className="space-y-4">
-                {experiences.map((exp, index) => {
+                {experiences.map((exp) => {
                   const TimeIcon = timePeriodIcons[exp.timePeriod];
                   return (
                     <div

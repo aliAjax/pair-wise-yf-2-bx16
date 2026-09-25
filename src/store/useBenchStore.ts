@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import type { Bench, BenchExperience, MaterialType, OrientationType, ShadeLevelType, NoiseLevelType, StayDurationType } from '@/types';
+import type { Bench, BenchExperience, BenchStatusType, MaterialType, OrientationType, ShadeLevelType, NoiseLevelType } from '@/types';
 import { loadBenches, saveBenches } from '@/utils/storage';
 import { generateId } from '@/utils/comfort';
+import { normalizeBenchStatus } from '@/utils/status';
 import { mockBenches } from '@/data/mockBenches';
 
 interface BenchState {
@@ -22,10 +23,11 @@ interface BenchActions {
   setShadeFilter: (shade: ShadeLevelType | null) => void;
   setNoiseFilter: (noise: NoiseLevelType | null) => void;
   clearFilters: () => void;
-  addBench: (bench: Omit<Bench, 'id' | 'createdAt' | 'updatedAt' | 'experiences'>) => void;
+  addBench: (bench: Omit<Bench, 'id' | 'createdAt' | 'updatedAt' | 'experiences' | 'status' | 'statusHistory'>) => void;
   updateBench: (id: string, updates: Partial<Bench>) => void;
   deleteBench: (id: string) => void;
   getBenchById: (id: string) => Bench | undefined;
+  changeStatus: (id: string, status: BenchStatusType, reason: string, changedAt: string) => void;
   addExperience: (benchId: string, experience: Omit<BenchExperience, 'id' | 'benchId'>) => void;
   updateExperience: (benchId: string, expId: string, updates: Partial<BenchExperience>) => void;
   deleteExperience: (benchId: string, expId: string) => void;
@@ -54,7 +56,6 @@ export const useBenchStore = create<BenchState & BenchActions>((set, get) => ({
       saveBenches(mockBenches);
     }
   },
-
   setSearchQuery: (query) => set({ searchQuery: query }),
   setMaterialFilter: (material) => set({ materialFilter: material }),
   setOrientationFilter: (orientation) => set({ orientationFilter: orientation }),
@@ -74,6 +75,8 @@ export const useBenchStore = create<BenchState & BenchActions>((set, get) => ({
     const newBench: Bench = {
       ...benchData,
       id: generateId(),
+      status: 'open',
+      statusHistory: [],
       experiences: [],
       createdAt: now,
       updatedAt: now,
@@ -99,11 +102,41 @@ export const useBenchStore = create<BenchState & BenchActions>((set, get) => ({
     saveBenches(newBenches);
   },
 
+  changeStatus: (id, status, reason, changedAt) => {
+    const newBenches = get().benches.map((bench) => {
+      if (bench.id !== id) return bench;
+      const normalized = normalizeBenchStatus(bench);
+      const history = [
+        ...normalized.statusHistory,
+        {
+          id: generateId(),
+          status,
+          reason: reason.trim(),
+          changedAt: new Date(`${changedAt}T12:00:00`).toISOString(),
+        },
+      ];
+      return {
+        ...normalized,
+        status,
+        statusHistory: history,
+        updatedAt: new Date().toISOString(),
+      };
+    });
+    set({ benches: newBenches });
+    saveBenches(newBenches);
+  },
+
   getBenchById: (id) => {
     return get().benches.find((bench) => bench.id === id);
   },
 
   addExperience: (benchId, experienceData) => {
+    const target = get().benches.find((bench) => bench.id === benchId);
+    // 停用期间不能新增时段体验
+    if (target && normalizeBenchStatus(target).status === 'inactive') {
+      console.warn('该长椅已停用，不能新增时段体验');
+      return;
+    }
     const newExperience: BenchExperience = {
       ...experienceData,
       id: generateId(),

@@ -15,6 +15,8 @@ export const mockBenches: Bench[] = [
     stayDuration: 'long',
     rating: 5,
     review: '公园里最爱的长椅，夏天梧桐叶茂盛时完全遮阴，偶尔能听到鸟鸣。',
+    status: 'open',
+    statusHistory: [],
     experiences: [
       {
         id: 'exp-001',
@@ -55,6 +57,8 @@ export const mockBenches: Bench[] = [
     stayDuration: 'medium',
     rating: 3,
     review: '视野很好能看到江景，但是夏天太烫，冬天又太凉。',
+    status: 'open',
+    statusHistory: [],
     experiences: [
       {
         id: 'exp-004',
@@ -95,6 +99,15 @@ export const mockBenches: Bench[] = [
     stayDuration: 'short',
     rating: 2,
     review: '没有靠背坐着不太舒服，适合短暂休息等人。',
+    status: 'restricted',
+    statusHistory: [
+      {
+        id: 'status-001',
+        status: 'restricted',
+        reason: '小区门口施工，靠近楼栋一侧临时围蔽，仅可短时间停留。',
+        changedAt: '2024-03-10T00:00:00+08:00',
+      },
+    ],
     experiences: [
       {
         id: 'exp-007',
@@ -121,6 +134,8 @@ export const mockBenches: Bench[] = [
     stayDuration: 'verylong',
     rating: 4,
     review: '在廊檐下，下雨也不怕，周围很安静，适合看书。',
+    status: 'open',
+    statusHistory: [],
     experiences: [
       {
         id: 'exp-008',
@@ -154,6 +169,15 @@ export const mockBenches: Bench[] = [
     stayDuration: 'short',
     rating: 1,
     review: '人多嘈杂，椅子也不舒服，只能歇脚。',
+    status: 'inactive',
+    statusHistory: [
+      {
+        id: 'status-002',
+        status: 'inactive',
+        reason: '椅面破损、支架松动正在维修，步行街管委会已临时封闭，修好后重新开放。',
+        changedAt: '2024-03-15T00:00:00+08:00',
+      },
+    ],
     experiences: [
       {
         id: 'exp-010',
@@ -180,6 +204,8 @@ export const mockBenches: Bench[] = [
     stayDuration: 'long',
     rating: 5,
     review: '学生时代的回忆，两排梧桐树完全遮住阳光，夏天特别凉快。',
+    status: 'open',
+    statusHistory: [],
     experiences: [
       {
         id: 'exp-011',
